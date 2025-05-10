@@ -129,3 +129,135 @@
   stmt.close();
   conn.close();
 %>
+
+# 4주차: Create 기능 구현 (Insert)
+
+## 학습 목표
+- 사용자 입력을 받아 MySQL에 데이터를 추가하는 기능을 구현한다.
+- JSP에서 HTML 폼을 작성하고, 이를 통해 데이터를 서버로 전송한다.
+- JDBC를 이용하여 INSERT 쿼리를 실행하고, 데이터를 DB에 저장한다.
+
+---
+
+## 학습 내용
+
+### 1. HTML 폼을 통한 사용자 입력
+- 사용자로부터 데이터를 입력받기 위해 HTML 폼을 작성함
+- 폼 태그 사용 예시:
+```html
+<form action="insert.jsp" method="post">
+  <label for="title">제목:</label>
+  <input type="text" id="title" name="title"><br><br>
+  
+  <label for="content">내용:</label>
+  <textarea id="content" name="content"></textarea><br><br>
+  
+  <input type="submit" value="등록">
+</form>
+
+<%@ page import="java.sql.*" %>
+<%
+  String title = request.getParameter("title");
+  String content = request.getParameter("content");
+  
+  String url = "jdbc:mysql://localhost:3306/testdb?useSSL=false&serverTimezone=UTC";
+  String user = "root";
+  String password = "비밀번호";
+  
+  Class.forName("com.mysql.cj.jdbc.Driver");
+  Connection conn = DriverManager.getConnection(url, user, password);
+  
+  String query = "INSERT INTO board (title, content) VALUES (?, ?)";
+  PreparedStatement pstmt = conn.prepareStatement(query);
+  pstmt.setString(1, title);
+  pstmt.setString(2, content);
+  
+  int result = pstmt.executeUpdate();
+  if(result > 0) {
+      out.println("게시글이 성공적으로 등록되었습니다.");
+  } else {
+      out.println("게시글 등록에 실패했습니다.");
+  }
+
+  pstmt.close();
+  conn.close();
+%>
+
+
+# 5주차: Read 기능 구현 (게시글 목록)
+
+## 학습 목표
+- MySQL에서 데이터를 조회하여 게시글 목록을 출력하는 기능을 구현한다.
+- JDBC를 이용해 SELECT 쿼리를 실행하고, 결과를 JSP에서 동적으로 출력한다.
+- 게시글 목록을 페이지에 표시하기 위한 기본적인 디자인과 동작을 구현한다.
+
+<%@ page import="java.sql.*" %>
+<%
+  String url = "jdbc:mysql://localhost:3306/testdb?useSSL=false&serverTimezone=UTC";
+  String user = "root";
+  String password = "비밀번호";
+  
+  Class.forName("com.mysql.cj.jdbc.Driver");
+  Connection conn = DriverManager.getConnection(url, user, password);
+  
+  String query = "SELECT * FROM board ORDER BY id DESC";
+  Statement stmt = conn.createStatement();
+  ResultSet rs = stmt.executeQuery(query);
+
+  while (rs.next()) {
+    int id = rs.getInt("id");
+    String title = rs.getString("title");
+    String content = rs.getString("content");
+%>
+    <div>
+      <h3><%= title %></h3>
+      <p><%= content %></p>
+      <a href="view.jsp?id=<%= id %>">상세보기</a>
+    </div>
+<%
+  }
+
+  rs.close();
+  stmt.close();
+  conn.close();
+%>
+
+# 6주차: Read 기능 구현 (게시글 상세보기)
+
+## 학습 목표
+- 게시글 목록에서 선택한 게시글을 상세보기 페이지에 출력하는 기능을 구현한다.
+- `id` 값을 URL로 전달하여 특정 게시글을 조회한다.
+- 게시글의 세부 정보를 페이지에 동적으로 출력한다.
+
+<%@ page import="java.sql.*" %>
+<%
+  String id = request.getParameter("id");
+  String url = "jdbc:mysql://localhost:3306/testdb?useSSL=false&serverTimezone=UTC";
+  String user = "root";
+  String password = "비밀번호";
+  
+  Class.forName("com.mysql.cj.jdbc.Driver");
+  Connection conn = DriverManager.getConnection(url, user, password);
+  
+  String query = "SELECT * FROM board WHERE id = ?";
+  PreparedStatement pstmt = conn.prepareStatement(query);
+  pstmt.setInt(1, Integer.parseInt(id));
+  ResultSet rs = pstmt.executeQuery();
+  
+  if (rs.next()) {
+    String title = rs.getString("title");
+    String content = rs.getString("content");
+    String createdAt = rs.getString("created_at");
+%>
+  <h2><%= title %></h2>
+  <p><%= content %></p>
+  <p><%= createdAt %></p>
+<%
+  } else {
+    out.println("해당 게시글을 찾을 수 없습니다.");
+  }
+
+  rs.close();
+  pstmt.close();
+  conn.close();
+%>
